@@ -82,25 +82,27 @@ namespace Parquet.Serialization {
             var striper = (Striper<T>)boxedStriper;
 
             bool append = options != null && options.Append;
-            using(ParquetWriter writer = await ParquetWriter.CreateAsync(striper.Schema, destination,
+            await using ParquetWriter writer = await ParquetWriter.CreateAsync(
+                striper.Schema,
+                destination,
                 options?.ParquetOptions,
-                append, cancellationToken)) {
+                append,
+                cancellationToken);
 
-                if(options != null) {
-                    writer.CompressionMethod = options.CompressionMethod;
-                    writer.CompressionLevel = options.CompressionLevel;
-                }
+            if(options != null) {
+                writer.CompressionMethod = options.CompressionMethod;
+                writer.CompressionLevel = options.CompressionLevel;
+            }
 
-                if(options?.RowGroupSize != null) {
-                    int rgs = options.RowGroupSize.Value;
-                    if(rgs < 1)
-                        throw new InvalidOperationException($"row group size must be a positive number, but passed {rgs}");
-                    foreach(T[] chunk in objectInstances.Chunk(rgs)) {
-                        await SerializeRowGroupAsync<T>(writer, striper, chunk, cancellationToken);
-                    }
-                } else {
-                    await SerializeRowGroupAsync<T>(writer, striper, objectInstances, cancellationToken);
+            if(options?.RowGroupSize != null) {
+                int rgs = options.RowGroupSize.Value;
+                if(rgs < 1)
+                    throw new InvalidOperationException($"row group size must be a positive number, but passed {rgs}");
+                foreach(T[] chunk in objectInstances.Chunk(rgs)) {
+                    await SerializeRowGroupAsync<T>(writer, striper, chunk, cancellationToken);
                 }
+            } else {
+                await SerializeRowGroupAsync<T>(writer, striper, objectInstances, cancellationToken);
             }
 
             return striper.Schema;

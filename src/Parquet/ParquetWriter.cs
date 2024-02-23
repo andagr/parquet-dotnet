@@ -15,7 +15,7 @@ namespace Parquet {
     /// Implements Apache Parquet format writer
     /// </summary>
 #pragma warning disable CA1063 // Implement IDisposable Correctly
-    public class ParquetWriter : ParquetActor, IDisposable
+    public class ParquetWriter : ParquetActor, IDisposable, IAsyncDisposable
 #pragma warning restore CA1063 // Implement IDisposable Correctly
     {
         private ThriftFooter? _footer;
@@ -139,13 +139,20 @@ namespace Parquet {
         public void Dispose()
 #pragma warning restore CA1063 // Implement IDisposable Correctly
         {
+            DisposeAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Disposes the writer and writes the file footer.
+        /// </summary>
+        public async ValueTask DisposeAsync() {
             if(_dataWritten) {
                 //update row count (on append add row count to existing metadata)
                 _footer!.Add(_openedWriters.Sum(w => w.RowCount ?? 0));
             }
 
             //finalize file
-            long size = _footer!.WriteAsync(Stream).ConfigureAwait(false).GetAwaiter().GetResult();
+            long size = await _footer!.WriteAsync(Stream).ConfigureAwait(false);
 
             //metadata size
             Writer.Write((int)size);  //4 bytes
