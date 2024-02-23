@@ -145,11 +145,7 @@ namespace Parquet {
             }
 
             //finalize file
-            //long size = _footer.WriteAsync(tream).Result;
-
-            var sizeTask = Task.Run(() => _footer!.WriteAsync(Stream));
-            sizeTask.Wait();
-            long size = sizeTask.Result;
+            long size = _footer!.WriteAsync(Stream).ConfigureAwait(false).GetAwaiter().GetResult();
 
             //metadata size
             Writer.Write((int)size);  //4 bytes

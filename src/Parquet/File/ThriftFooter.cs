@@ -82,7 +82,7 @@ namespace Parquet.File {
             using var ms = new MemoryStream();
             _fileMeta.Write(new ThriftCompactProtocolWriter(ms));
             ms.Position = 0;
-            await ms.CopyToAsync(s);
+            await ms.CopyToAsync(s).ConfigureAwait(false);
             return ms.Length;
         }
 
